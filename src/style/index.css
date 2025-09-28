@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 文创风格色彩变量 */
+:root {
+  --color-primary-terracotta: #D2B48C;
+  --color-primary-sage: #9CAF88;
+  --color-primary-charcoal: #708090;
+  --color-accent-crimson: #DC143C;
+  --color-accent-gold: #FFD700;
+  --color-text-dark: #2F4F4F;
+  --color-text-light: #FFFFFF;
+  --color-bg-cream: #FFF8DC;
+}
+
+/* 自定义基础样式 */
+@layer base {
+  html {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  }
+  
+  body {
+    @apply antialiased;
+    background-color: var(--color-bg-cream);
+  }
+}
+
+/* 自定义组件样式 */
+@layer components {
+  .glass-effect {
+    @apply backdrop-blur-md bg-white/30 border border-white/20;
+  }
+  
+  .card-shadow {
+    @apply shadow-lg shadow-gray-200/50;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+
+  /* 文创风格按钮 */
+  .cultural-button {
+    background: linear-gradient(135deg, var(--color-accent-crimson) 0%, rgba(220, 20, 60, 0.9) 100%);
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cultural-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .cultural-button:hover::before {
+    left: 100%;
+  }
+
+  .cultural-button:hover {
+    background: linear-gradient(135deg, rgba(220, 20, 60, 0.9) 0%, var(--color-accent-crimson) 100%);
+    box-shadow: 0 8px 25px rgba(220, 20, 60, 0.3);
+  }
+
+  /* 传统纹样装饰 */
+  .traditional-pattern {
+    background-image: 
+      radial-gradient(circle at 25% 25%, var(--color-accent-gold) 2px, transparent 2px),
+      radial-gradient(circle at 75% 75%, var(--color-primary-sage) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.1;
+  }
+}
+
+/* 自定义工具类 */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-indigo-600 bg-clip-text text-transparent;
+  }
+}
