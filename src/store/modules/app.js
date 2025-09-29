@@ -1,9 +1,9 @@
-const state = {
+const state = () => ({
   loading: false,
   sidebarCollapsed: false,
-  theme: 'light',
-  language: 'zh-CN'
-}
+  theme: localStorage.getItem('theme') || 'light',
+  language: localStorage.getItem('language') || 'zh-CN'
+})
 
 const mutations = {
   SET_LOADING(state, loading) {

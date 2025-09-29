@@ -85,6 +85,22 @@
               </div>
             </div>
 
+            <!-- 工作流结果消息 -->
+            <div 
+              v-else-if="message.type === 'workflow'"
+              class="flex items-start space-x-3 max-w-full"
+            >
+              <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-cogs text-white text-sm"></i>
+              </div>
+              <div class="flex-1">
+                <WorkflowResult :result="message.content" />
+                <div class="text-xs text-gray-400 mt-2 ml-2">
+                  {{ formatTime(message.timestamp) }}
+                </div>
+              </div>
+            </div>
+
             <!-- 用户消息 -->
             <div 
               v-else
@@ -148,17 +164,30 @@
                   </div>
                 </div>
               </div>
-              <el-button
-                type="primary"
-                @click="handleSendMessage"
-                :disabled="!inputMessage.trim() || isAITyping"
-                :loading="isAITyping"
-                size="large"
-                class="px-6"
-              >
-                <i class="fas fa-paper-plane mr-2"></i>
-                发送
-              </el-button>
+              <div class="flex space-x-3">
+                <el-button
+                  type="success"
+                  @click="handleStartWorkflow"
+                  :disabled="isWorkflowRunning"
+                  :loading="isWorkflowRunning"
+                  size="large"
+                  class="px-6 bg-gradient-to-r from-green-500 to-emerald-600 border-0 hover:from-green-600 hover:to-emerald-700"
+                >
+                  <i class="fas fa-play mr-2"></i>
+                  开始工作
+                </el-button>
+                <el-button
+                  type="primary"
+                  @click="handleSendMessage"
+                  :disabled="!inputMessage.trim() || isAITyping"
+                  :loading="isAITyping"
+                  size="large"
+                  class="px-6"
+                >
+                  <i class="fas fa-paper-plane mr-2"></i>
+                  发送
+                </el-button>
+              </div>
             </div>
           </div>
         </div>
@@ -241,8 +270,9 @@ import { ref, reactive, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
-import { createAIChatStream } from '@/api/imageProject'
+import { createAIChatStream, executeWorkflow } from '@/api/imageProject'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
+import WorkflowResult from '@/components/common/WorkflowResult.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -262,6 +292,10 @@ const currentEventSource = ref(null)
 
 // 当前AI消息（用于流式接收）
 const currentAIMessage = ref('')
+
+// 工作流相关
+const isWorkflowRunning = ref(false)
+const workflowResult = ref(null)
 
 
 
@@ -390,6 +424,77 @@ const sendInitialPrompt = async () => {
   
   // 发送初始创作想法
   await sendMessage(initialPrompt.value.trim())
+}
+
+// 开始工作流执行
+const handleStartWorkflow = async () => {
+  if (isWorkflowRunning.value) return
+  
+  try {
+    isWorkflowRunning.value = true
+    ElMessage.info('正在启动工作流，请稍候...')
+    
+    // 准备请求数据
+    const requestData = {
+      imageProjectId: projectId.value,
+      originalPrompt: messages.length > 0 
+        ? messages.filter(msg => msg.type === 'user').slice(-1)[0]?.content || '请根据我们的对话内容设计文创产品'
+        : '请设计一款文创产品',
+      async: false
+    }
+    
+    // 显示处理中的提示
+    ElMessage({
+      message: '工作流正在处理中，这可能需要几分钟时间，请耐心等待...',
+      type: 'info',
+      duration: 0, // 不自动关闭
+      showClose: true
+    })
+    
+    // 调用工作流执行API
+    const data = await executeWorkflow(requestData)
+    
+    // 关闭所有消息提示
+    ElMessage.closeAll()
+    
+    // 响应拦截器已经处理了状态码，直接使用返回的数据
+    workflowResult.value = data
+    ElMessage.success('工作流执行成功！')
+    
+    // 将工作流结果添加到消息列表中
+    messages.push({
+      id: Date.now(),
+      type: 'workflow',
+      content: data,
+      timestamp: new Date().toLocaleTimeString()
+    })
+    
+    // 滚动到底部
+    await nextTick()
+    scrollToBottom()
+  } catch (error) {
+    console.error('工作流执行失败:', error)
+    
+    // 根据错误类型提供不同的提示信息
+    let errorMessage = '工作流执行失败，请重试'
+    
+    if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
+      errorMessage = '工作流处理时间较长，请稍后查看结果或重新尝试'
+    } else if (error.response) {
+      // 服务器响应错误
+      errorMessage = error.response.data?.message || `服务器错误 (${error.response.status})`
+    } else if (error.request) {
+      // 网络错误
+      errorMessage = '网络连接失败，请检查网络后重试'
+    } else {
+      // 其他错误
+      errorMessage = error.message || '未知错误，请重试'
+    }
+    
+    ElMessage.error(errorMessage)
+  } finally {
+    isWorkflowRunning.value = false
+  }
 }
 
 // 返回上一页

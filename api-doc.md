@@ -763,3 +763,243 @@ eventSource.onerror = function(err) {
     console.error("EventSource 发生错误:", err);
     eventSource.close();
 };
+
+
+
+
+## 工作流执行接口
+
+### 执行工作流
+
+**接口描述**: 执行AI文创产品设计工作流，包含提示词增强、图片搜集、AI图片生成、生产工艺流程生成和3D模型制作等步骤。
+
+**请求URL**: `/imageProject/workflow/execute`
+
+**请求方法**: `POST`
+
+**权限要求**: 需要登录
+
+**请求参数**:
+
+| 参数名 | 类型 | 必填 | 描述 | 示例值 |
+|--------|------|------|------|--------|
+| `imageProjectId` | Number | 是 | 项目ID，必须是已存在的项目 | `179826962019328` |
+| `originalPrompt` | String | 是 | 用户输入的原始提示词，不能为空 | `"设计一款融合西安古建筑元素的茶具套装"` |
+| `async` | Boolean | 否 | 是否异步执行，默认为false（同步执行） | `false` |
+
+**请求体示例**:
+
+```json
+{
+  "imageProjectId": 179826962019328,
+  "originalPrompt": "设计一款融合西安古建筑元素的茶具套装",
+  "async": false
+}
+```
+
+**成功响应**:
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| `code` | Number | 响应状态码，`0` 表示成功 |
+| `data` | Object | 工作流执行结果对象 |
+| `message` | String | 响应消息，成功时为 `"ok"` |
+
+**响应数据结构 (data字段)**:
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| `executionId` | String | 执行ID，用于标识本次执行 |
+| `jobId` | String | 任务ID，用于数据库跟踪和状态查询 |
+| `imageProjectId` | Number | 项目ID |
+| `status` | String | 执行状态：`RUNNING`（执行中）、`COMPLETED`（已完成）、`FAILED`（失败） |
+| `originalPrompt` | String | 原始提示词 |
+| `enhancedPrompt` | String | AI增强后的提示词 |
+| `keyPoint` | String | 提取的关键词，用于图片搜索 |
+| `imageList` | Array | 收集到的参考图片列表 |
+| `aiImage` | Object | AI生成的设计图片 |
+| `productionProcess` | String | 生产工艺流程描述 |
+| `nodeResults` | Object | 各个工作流节点的执行结果 |
+| `startTime` | String | 执行开始时间 |
+| `endTime` | String | 执行结束时间 |
+| `duration` | Number | 执行耗时（毫秒） |
+| `errorMessage` | String | 错误信息（如果有） |
+
+**图片对象结构 (imageList数组元素和aiImage对象)**:
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| `description` | String | 图片描述 |
+| `url` | String | 图片访问地址 |
+
+**成功响应示例**:
+
+```json
+{
+  "code": 0,
+  "data": {
+    "executionId": "a1b2c3d4e5f6",
+    "jobId": "job_20241228_001",
+    "imageProjectId": 179826962019328,
+    "status": "COMPLETED",
+    "originalPrompt": "设计一款融合西安古建筑元素的茶具套装",
+    "enhancedPrompt": "设计一款融合西安古建筑元素的茶具套装，结合大雁塔、城墙、兵马俑等标志性建筑特色，采用传统青瓷工艺，体现古都文化底蕴",
+    "keyPoint": "西安古建筑 茶具 文创 古都文化",
+    "imageList": [
+      {
+        "description": "西安大雁塔建筑参考图",
+        "url": "https://example.com/images/dayan_tower.jpg"
+      },
+      {
+        "description": "传统青瓷茶具样式",
+        "url": "https://example.com/images/celadon_teaware.jpg"
+      }
+    ],
+    "aiImage": {
+      "description": "融合西安古建筑元素的茶具套装设计图",
+      "url": "https://example.com/generated/teaware_design.jpg"
+    },
+    "productionProcess": "1. 设计稿确认 → 2. 泥料准备 → 3. 拉坯成型 → 4. 修坯装饰 → 5. 素烧 → 6. 施釉 → 7. 釉烧 → 8. 质检包装",
+    "nodeResults": {
+      "prompt_enhancer": "提示词增强完成",
+      "image_collector": "已收集到2张相关参考图片",
+      "image_maker": "AI图片生成完成",
+      "production_process": "生产工艺流程生成完成",
+      "model_maker": "3D模型制作完成"
+    },
+    "startTime": "2024-12-28T10:30:00",
+    "endTime": "2024-12-28T10:35:30",
+    "duration": 330000,
+    "errorMessage": null
+  },
+  "message": "ok"
+}
+```
+
+**失败响应**:
+
+| 参数名 | 类型 | 描述 |
+|--------|------|------|
+| `code` | Number | 错误码，非 `0` 的值表示失败 |
+| `data` | Object | `null` |
+| `message` | String | 错误描述信息 |
+
+**常见错误响应示例**:
+
+*   **参数错误** (原始提示词为空):
+    ```json
+    {
+      "code": 40000,
+      "data": null,
+      "message": "原始提示词不能为空"
+    }
+    ```
+
+*   **项目不存在**:
+    ```json
+    {
+      "code": 40400,
+      "data": null,
+      "message": "项目不存在"
+    }
+    ```
+
+*   **未登录**:
+    ```json
+    {
+      "code": 40100,
+      "data": null,
+      "message": "未登录"
+    }
+    ```
+
+*   **系统异常**:
+    ```json
+    {
+      "code": 50000,
+      "data": null,
+      "message": "系统内部异常"
+    }
+    ```
+
+**CURL 请求示例**:
+
+```bash
+curl -X POST 'http://localhost:8080/api/imageProject/workflow/execute' \
+-H 'Content-Type: application/json' \
+-H 'Cookie: JSESSIONID=your_session_id' \
+-d '{
+  "imageProjectId": 179826962019328,
+  "originalPrompt": "设计一款融合西安古建筑元素的茶具套装",
+  "async": false
+}'
+```
+
+**前端实现示例**:
+
+```javascript
+// 执行工作流
+async function executeWorkflow(imageProjectId, originalPrompt, async = false) {
+  try {
+    const response = await fetch('/api/imageProject/workflow/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // 包含session cookie
+      body: JSON.stringify({
+        imageProjectId: imageProjectId,
+        originalPrompt: originalPrompt,
+        async: async
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.code === 0) {
+      console.log('工作流执行成功:', result.data);
+      return result.data;
+    } else {
+      console.error('工作流执行失败:', result.message);
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error('请求失败:', error);
+    throw error;
+  }
+}
+
+// 使用示例
+executeWorkflow(179826962019328, "设计一款融合西安古建筑元素的茶具套装")
+  .then(result => {
+    // 处理成功结果
+    console.log('执行ID:', result.executionId);
+    console.log('任务ID:', result.jobId);
+    console.log('增强提示词:', result.enhancedPrompt);
+    console.log('生成的图片:', result.aiImage);
+    console.log('生产工艺:', result.productionProcess);
+  })
+  .catch(error => {
+    // 处理错误
+    alert('工作流执行失败: ' + error.message);
+  });
+```
+
+**工作流执行步骤说明**:
+
+1. **提示词增强** (`prompt_enhancer`): 使用AI对用户输入的提示词进行优化和扩展
+2. **图片搜集** (`image_collector`): 根据关键词搜索相关的参考图片素材
+3. **AI图片生成** (`image_maker`): 基于增强提示词和参考图片生成设计图
+4. **生产工艺流程** (`production_process`): 生成详细的产品制作工艺流程
+5. **3D模型制作** (`model_maker`): 将2D设计图转换为3D模型文件
+
+**注意事项**:
+
+1. 工作流执行可能需要较长时间（通常2-5分钟），建议使用异步模式
+2. 异步执行时可以通过 `jobId` 查询执行状态和进度
+3. 确保 `imageProjectId` 对应的项目存在且用户有访问权限
+4. `originalPrompt` 应该尽量详细和具体，以获得更好的生成效果
+5. 生成的图片和3D模型文件会自动保存到云存储
+6. 工作流执行过程中会消耗AI服务配额，请合理使用
+
+---

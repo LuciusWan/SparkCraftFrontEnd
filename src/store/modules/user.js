@@ -2,10 +2,15 @@ import { userLogin, userRegister, getCurrentUser, userLogout } from '@/api/user'
 import { ElMessage } from 'element-plus'
 
 // 用户相关状态管理
-const state = {
-  token: localStorage.getItem('token') || '',
-  userInfo: JSON.parse(localStorage.getItem('userInfo') || '{}'),
-  isLoggedIn: !!localStorage.getItem('userInfo')
+const state = () => {
+  const userInfoStr = localStorage.getItem('userInfo')
+  const userInfo = userInfoStr ? JSON.parse(userInfoStr) : {}
+  
+  return {
+    token: localStorage.getItem('token') || '',
+    userInfo: userInfo,
+    isLoggedIn: !!(userInfo && userInfo.id)
+  }
 }
 
 const mutations = {

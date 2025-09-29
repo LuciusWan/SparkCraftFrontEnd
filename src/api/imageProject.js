@@ -94,3 +94,13 @@ export const createAIChatStream = (params, onMessage, onEnd, onError) => {
   
   return eventSource
 }
+
+// 执行工作流
+export const executeWorkflow = (data) => {
+  return request({
+    url: '/imageProject/workflow/execute',
+    method: 'post',
+    data,
+    timeout: 300000 // 5分钟超时，适应长时间的工作流处理
+  })
+}
